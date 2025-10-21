@@ -43,11 +43,11 @@ That's it! Your `Cargo.toml` is already set up correctly.
 
 ### 2. Create GitHub Release (Automatic!)
 
-I've set up GitHub Actions that will automatically:
+✅ **GitHub Actions are now configured!** They will automatically:
 - Build for macOS (Intel & ARM)
-- Build for Linux (x86_64)
+- Build for Linux (x86_64 - both glibc and musl)
 - Build for Windows
-- Create a release with all binaries
+- Create a release with all binaries + SHA-256 checksums
 
 **How to trigger:**
 ```bash
@@ -55,14 +55,20 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-GitHub Actions will build everything and create the release automatically!
+GitHub Actions will build everything and create the release automatically in ~10-15 minutes!
 
 Then users can download pre-compiled binaries (no Rust needed):
 ```bash
-# macOS/Linux
-curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-Darwin-aarch64.tar.gz | tar xz
+# macOS Apple Silicon (M1/M2/M3)
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-darwin-aarch64.tar.gz | tar xz
 chmod +x proxmon
 sudo mv proxmon /usr/local/bin/
+
+# macOS Intel
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-darwin-x86_64.tar.gz | tar xz
+
+# Linux
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-linux-x86_64.tar.gz | tar xz
 ```
 
 ## Files I Created
@@ -116,7 +122,8 @@ When you push a tag, GitHub Actions builds for:
 
 - ✅ **macOS** (Intel x86_64)
 - ✅ **macOS** (Apple Silicon ARM64)
-- ✅ **Linux** (x86_64)
+- ✅ **Linux** (x86_64 with glibc - standard)
+- ✅ **Linux** (x86_64 with musl - statically linked, works everywhere)
 - ✅ **Windows** (x86_64)
 
 ## User Installation Options Summary

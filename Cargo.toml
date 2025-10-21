@@ -1,6 +1,6 @@
 [package]
 name = "proxmon"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A blazingly fast terminal UI for managing Proxmox VMs and containers - Gotta manage 'em all!"
 authors = ["0xgoz"]

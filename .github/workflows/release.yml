@@ -3,109 +3,170 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    name: Release - ${{ matrix.platform.os_name }}
-    strategy:
-      matrix:
-        platform:
-          - os_name: Linux-x86_64
-            os: ubuntu-20.04
-            target: x86_64-unknown-linux-gnu
-            bin: proxmon
-            name: proxmon-Linux-x86_64.tar.gz
-
-          - os_name: macOS-x86_64
-            os: macOS-latest
-            target: x86_64-apple-darwin
-            bin: proxmon
-            name: proxmon-Darwin-x86_64.tar.gz
-
-          - os_name: macOS-aarch64
-            os: macOS-latest
-            target: aarch64-apple-darwin
-            bin: proxmon
-            name: proxmon-Darwin-aarch64.tar.gz
-
-          - os_name: Windows-x86_64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: proxmon.exe
-            name: proxmon-Windows-x86_64.zip
-
-    runs-on: ${{ matrix.platform.os }}
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          targets: ${{ matrix.platform.target }}
-
-      - name: Build binary
-        run: |
-          cargo build --release --target ${{ matrix.platform.target }}
-
-      - name: Package as archive (Unix)
-        if: matrix.platform.os != 'windows-latest'
-        run: |
-          cd target/${{ matrix.platform.target }}/release
-          tar czvf ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
-          cd -
-
-      - name: Package as archive (Windows)
-        if: matrix.platform.os == 'windows-latest'
-        shell: bash
-        run: |
-          cd target/${{ matrix.platform.target }}/release
-          7z a ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
-          cd -
-
-      - name: Generate SHA-256
-        run: shasum -a 256 ${{ matrix.platform.name }} > ${{ matrix.platform.name }}.sha256
-
-      - name: Publish GitHub release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: false
-          files: |
-            ${{ matrix.platform.name }}
-            ${{ matrix.platform.name }}.sha256
+          tag_name: ${{ github.ref }}
+          release_name: Proxmon v${{ steps.get_version.outputs.version }}
           body: |
-            ## Installation
+            ## Proxmon v${{ steps.get_version.outputs.version }}
 
-            ### From Binary
-            Download the appropriate binary for your platform, extract it, and move to your PATH.
+            🎮 **Gotta manage 'em all!** - A blazingly fast terminal UI for Proxmox
 
-            **macOS/Linux:**
+            ### Installation
+
+            Download the appropriate binary for your platform below, extract it, and move it to your PATH.
+
+            **macOS:**
             ```bash
-            tar xzf proxmon-*.tar.gz
+            # Apple Silicon (M1/M2/M3)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-aarch64.tar.gz | tar xz
+
+            # Intel
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-x86_64.tar.gz | tar xz
+
+            # Install
+            chmod +x proxmon
+            sudo mv proxmon /usr/local/bin/
+            ```
+
+            **Linux:**
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-linux-x86_64.tar.gz | tar xz
             chmod +x proxmon
             sudo mv proxmon /usr/local/bin/
             ```
 
             **Windows:**
-            Extract the zip and add `proxmon.exe` to your PATH.
+            Download `proxmon-windows-x86_64.zip`, extract, and add to your PATH.
 
-            ### From Source (with Cargo)
+            ### Alternative Installation
+
+            If you have Rust/Cargo installed:
             ```bash
             cargo install proxmon
             ```
 
-            ### From Git
-            ```bash
-            cargo install --git https://github.com/0xgoz/proxmon --tag ${{ github.ref_name }}
-            ```
+            ### Checksums
 
-            ## What's New
-            See the full changelog in [CHANGELOG.md](CHANGELOG.md)
+            SHA-256 checksums are provided for all binaries below.
+          draft: false
+          prerelease: false
 
-            ---
-            🎮 **Gotta manage 'em all!**
+  build-release:
+    name: Build Release
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: proxmon-darwin-x86_64.tar.gz
 
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: proxmon-darwin-aarch64.tar.gz
+
+          # Linux
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: proxmon-linux-x86_64.tar.gz
+
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: proxmon-linux-x86_64-musl.tar.gz
+
+          # Windows
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: proxmon-windows-x86_64.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools (Linux MUSL)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Strip binary (Linux and macOS)
+        if: matrix.os != 'windows-latest'
+        run: strip target/${{ matrix.target }}/release/proxmon
+
+      - name: Create archive (Linux and macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../${{ matrix.name }} proxmon
+          cd -
+
+      - name: Create archive (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd target/${{ matrix.target }}/release
+          Compress-Archive -Path proxmon.exe -DestinationPath ../../../${{ matrix.name }}
+          cd -
+
+      - name: Generate SHA-256 checksum
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            shasum -a 256 ${{ matrix.name }} > ${{ matrix.name }}.sha256
+          else
+            sha256sum ${{ matrix.name }} > ${{ matrix.name }}.sha256
+          fi
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.name }}
+          asset_name: ${{ matrix.name }}
+          asset_content_type: application/octet-stream
+
+      - name: Upload Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.name }}.sha256
+          asset_name: ${{ matrix.name }}.sha256
+          asset_content_type: text/plain
