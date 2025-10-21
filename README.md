@@ -58,18 +58,31 @@ cargo install --git https://github.com/0xgoz/proxmon
 
 Download the latest release for your platform from [GitHub Releases](https://github.com/0xgoz/proxmon/releases):
 
-**macOS/Linux:**
+**macOS:**
 ```bash
-# Download and extract (replace URL with latest release)
-curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-<PLATFORM>.tar.gz | tar xz
+# Apple Silicon (M1/M2/M3)
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-darwin-aarch64.tar.gz | tar xz
 
-# Make executable and move to PATH
+# Intel
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-darwin-x86_64.tar.gz | tar xz
+
+# Install
+chmod +x proxmon
+sudo mv proxmon /usr/local/bin/
+```
+
+**Linux:**
+```bash
+# MUSL build (recommended - works on ANY distro!)
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-linux-x86_64-musl.tar.gz | tar xz
+
+# Install
 chmod +x proxmon
 sudo mv proxmon /usr/local/bin/
 ```
 
 **Windows:**
-Download the `.zip`, extract, and add `proxmon.exe` to your PATH.
+Download the `.zip` from the releases page, extract, and add `proxmon.exe` to your PATH.
 
 ### Option 4: Build from Source
 
@@ -84,10 +97,9 @@ cargo build --release
 
 ### Adding Your First Proxmox Host
 
-You have two options:
+**Interactive Setup (Recommended)**
 
-**Option 1: Interactive Setup (Recommended)**
-1. Run `proxmon`
+1. Run `proxmon` - If no config exists, it will automatically create one at `~/.config/proxmon/config.yml`
 2. Press **`a`** to open the setup wizard
 3. Fill in your Proxmox details:
    - Name (e.g., "vs01")
@@ -100,11 +112,14 @@ You have two options:
 
 Config is automatically saved to `~/.config/proxmon/config.yml`
 
-**Option 2: Manual Configuration**
-1. Create config directory: `mkdir -p ~/.config/proxmon`
-2. Copy example: `cp config.example.yml ~/.config/proxmon/config.yml`
-3. Edit with your details
-4. Run `proxmon`
+**No config file needed to start!** Proxmon will create everything for you on first run.
+
+**Manual Configuration (Alternative)**
+
+If you prefer to set up the config manually:
+1. Config will be auto-created at `~/.config/proxmon/config.yml` on first run
+2. Edit it with your Proxmox details (see `config.example.yml` for reference)
+3. Run `proxmon`
 
 ## Usage
 

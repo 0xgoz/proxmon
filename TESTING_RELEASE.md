@@ -54,18 +54,13 @@ git push origin v0.1.0
 
 ## How to Test on Your Linux Machine
 
-### Option 1: Download from GitHub Release (After workflow completes)
+### Option 1: Use the MUSL version (RECOMMENDED - works on ANY Linux!)
+
+The MUSL build is statically linked and works on ANY Linux distribution, regardless of glibc version:
 
 ```bash
-# Download the binary
-curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64.tar.gz -o proxmon.tar.gz
-
-# Verify checksum (optional but recommended)
-curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64.tar.gz.sha256 -o proxmon.tar.gz.sha256
-sha256sum -c proxmon.tar.gz.sha256
-
-# Extract
-tar xzf proxmon.tar.gz
+# Download and extract
+curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64-musl.tar.gz | tar xz
 
 # Make executable
 chmod +x proxmon
@@ -77,17 +72,50 @@ sudo mv proxmon /usr/local/bin/
 proxmon
 ```
 
-### Option 2: Use the MUSL version (works on any Linux)
+**Why MUSL?** No glibc dependencies = works everywhere! Perfect for older systems, containers, and ensuring maximum compatibility.
 
-The MUSL build is statically linked and works on ANY Linux distribution:
+### Option 2: Use the standard glibc version
+
+If you're on a recent Linux distro (Ubuntu 20.04+, Debian 11+, etc.):
 
 ```bash
-curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64-musl.tar.gz | tar xz
+# Download the binary
+curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64.tar.gz -o proxmon.tar.gz
+
+# Verify checksum (optional but recommended)
+curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64.tar.gz.sha256 -o proxmon.tar.gz.sha256
+sha256sum -c proxmon.tar.gz.sha256
+
+# Extract and install
+tar xzf proxmon.tar.gz
 chmod +x proxmon
-./proxmon
+sudo mv proxmon /usr/local/bin/
+proxmon
 ```
 
-### Option 3: Build directly on Linux machine
+**Note:** If you get a "GLIBC version not found" error, use the MUSL build instead (Option 1).
+
+### Option 3: Build MUSL locally (for testing before release)
+
+If you want to test before the GitHub Actions complete, build a MUSL binary on your Mac:
+
+```bash
+# On your Mac: Add the musl target
+rustup target add x86_64-unknown-linux-musl
+
+# Build for musl
+cargo build --release --target x86_64-unknown-linux-musl
+
+# Copy to your Linux machine
+scp target/x86_64-unknown-linux-musl/release/proxmon user@linux-machine:/tmp/
+
+# On Linux machine
+ssh user@linux-machine
+chmod +x /tmp/proxmon
+/tmp/proxmon
+```
+
+### Option 4: Build directly on Linux machine
 
 ```bash
 # Install Rust (if not installed)
@@ -153,6 +181,20 @@ chmod +x proxmon
 ```
 
 ## Troubleshooting
+
+### "GLIBC version not found" on Linux
+**Problem:** `proxmon: /lib/x86_64-linux-gnu/libc.so.6: version 'GLIBC_2.39' not found`
+
+**Solution:** Use the MUSL build instead:
+```bash
+curl -L https://github.com/0xgoz/proxmon/releases/download/v0.1.0/proxmon-linux-x86_64-musl.tar.gz | tar xz
+chmod +x proxmon
+./proxmon
+```
+
+The MUSL build is statically linked and has **zero glibc dependencies**, so it works on any Linux system regardless of age.
+
+**Why this happens:** The standard glibc build is compiled on Ubuntu 20.04, which may have a newer glibc than your system. The MUSL build avoids this entirely.
 
 ### "Actions are not enabled for this repository"
 1. Go to repository Settings → Actions → General

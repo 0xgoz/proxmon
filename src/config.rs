@@ -77,6 +77,17 @@ fn default_become_method() -> String {
     "sudo".to_string()
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            proxmox_hosts: Vec::new(),
+            manual_hosts: Vec::new(),
+            ip_overrides: Vec::new(),
+            ansible_defaults: AnsibleDefaults::default(),
+        }
+    }
+}
+
 impl Config {
     pub fn load(path: &str) -> Result<Self> {
         let contents = fs::read_to_string(path)

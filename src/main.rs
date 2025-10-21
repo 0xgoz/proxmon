@@ -36,17 +36,43 @@ async fn main() -> Result<()> {
             "config.yml".to_string()
         });
 
-    // Load configuration
-    let config = match Config::load(&config_path) {
-        Ok(cfg) => cfg,
+    // Load configuration, create empty one if it doesn't exist
+    let (config, actual_config_path) = match Config::load(&config_path) {
+        Ok(cfg) => (cfg, config_path),
         Err(_) => {
-            eprintln!("Error: config.yml not found at {}", config_path);
-            eprintln!("Tip: Set PROXMON_CONFIG env var or create config at:");
-            if let Some(home_dir) = dirs::home_dir() {
-                eprintln!("  {}", home_dir.join(".config").join("proxmon").join("config.yml").display());
+            // Config doesn't exist, create it with defaults
+            eprintln!("No config found at {}", config_path);
+
+            // Determine the default config path
+            let default_path = if let Some(home_dir) = dirs::home_dir() {
+                home_dir.join(".config").join("proxmon").join("config.yml")
+            } else {
+                std::path::PathBuf::from("config.yml")
+            };
+
+            // Create the directory structure if it doesn't exist
+            if let Some(parent) = default_path.parent() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    eprintln!("Error: Failed to create config directory: {}", e);
+                    std::process::exit(1);
+                }
             }
-            eprintln!("  OR ./config.yml (current directory)");
-            std::process::exit(1);
+
+            // Create an empty config with defaults
+            let empty_config = Config::default();
+            let config_yaml = serde_yaml::to_string(&empty_config)
+                .expect("Failed to serialize default config");
+
+            if let Err(e) = std::fs::write(&default_path, config_yaml) {
+                eprintln!("Error: Failed to create config file: {}", e);
+                std::process::exit(1);
+            }
+
+            eprintln!("✨ Created new config at: {}", default_path.display());
+            eprintln!("📝 Tip: Press 'a' in the app to add your first Proxmox host!\n");
+
+            let path_str = default_path.to_string_lossy().to_string();
+            (empty_config, path_str)
         }
     };
 
@@ -58,7 +84,7 @@ async fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // Create app
-    let mut app = App::new(config, config_path);
+    let mut app = App::new(config, actual_config_path);
 
     // Fetch initial data (don't fail if this errors - we'll show it in the UI)
     if let Err(e) = app.fetch_all_hosts().await {

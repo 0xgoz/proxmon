@@ -66,9 +66,13 @@ sudo mv proxmon /usr/local/bin/
 
 # macOS Intel
 curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-darwin-x86_64.tar.gz | tar xz
+chmod +x proxmon
+sudo mv proxmon /usr/local/bin/
 
-# Linux
-curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-linux-x86_64.tar.gz | tar xz
+# Linux (MUSL - works on ANY distro, recommended!)
+curl -L https://github.com/0xgoz/proxmon/releases/latest/download/proxmon-linux-x86_64-musl.tar.gz | tar xz
+chmod +x proxmon
+sudo mv proxmon /usr/local/bin/
 ```
 
 ## Files I Created
