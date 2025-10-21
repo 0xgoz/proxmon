@@ -8,7 +8,7 @@
 ```bash
 cargo install --git https://github.com/0xgoz/proxmon
 ```
-**User requirement:** Rust/Cargo installed  
+**User requirement:** Rust/Cargo installed
 **Your setup:** Just push to GitHub!
 
 ### 2. Build from Source
@@ -18,7 +18,7 @@ cd proxmon
 cargo build --release
 ./target/release/proxmon
 ```
-**User requirement:** Rust/Cargo installed  
+**User requirement:** Rust/Cargo installed
 **Your setup:** Just push to GitHub!
 
 ## 🚀 Next Steps (Easy!)
@@ -67,12 +67,12 @@ sudo mv proxmon /usr/local/bin/
 
 ## Files I Created
 
-✅ **`.github/workflows/release.yml`** - Automatic binary releases  
-✅ **`.github/workflows/ci.yml`** - Continuous integration testing  
-✅ **`PUBLISHING.md`** - Detailed publishing guide  
-✅ **`DISTRIBUTION.md`** - This file (quick reference)  
-✅ **Updated `Cargo.toml`** - Added metadata for crates.io  
-✅ **Updated `README.md`** - Installation instructions  
+✅ **`.github/workflows/release.yml`** - Automatic binary releases
+✅ **`.github/workflows/ci.yml`** - Continuous integration testing
+✅ **`PUBLISHING.md`** - Detailed publishing guide
+✅ **`DISTRIBUTION.md`** - This file (quick reference)
+✅ **Updated `Cargo.toml`** - Added metadata for crates.io
+✅ **Updated `README.md`** - Installation instructions
 
 ## Recommended Publishing Flow
 
@@ -85,11 +85,11 @@ sudo mv proxmon /usr/local/bin/
    git branch -M main
    git remote add origin https://github.com/0xgoz/proxmon.git
    git push -u origin main
-   
+
    # Create first release
    git tag v0.1.0
    git push origin v0.1.0
-   
+
    # Publish to crates.io
    cargo login
    cargo publish
@@ -99,11 +99,11 @@ sudo mv proxmon /usr/local/bin/
    ```bash
    # Update version in Cargo.toml
    # Make your changes and commit
-   
+
    # Tag and push
    git tag v0.1.1
    git push origin v0.1.1
-   
+
    # Publish to crates.io
    cargo publish
    ```

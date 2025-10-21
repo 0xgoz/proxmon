@@ -10,7 +10,7 @@ Users can install directly from GitHub without cloning:
 cargo install --git https://github.com/0xgoz/proxmon
 ```
 
-**Requirements:** Just Rust/Cargo installed  
+**Requirements:** Just Rust/Cargo installed
 **Your setup:** Push your code to GitHub - done!
 
 ## Option 2: Publish to crates.io (Recommended)
@@ -147,17 +147,17 @@ brew install proxmon
 
 ## Recommended Approach
 
-**For Rust developers:** Publish to crates.io  
-**For everyone else:** GitHub Releases with pre-compiled binaries  
+**For Rust developers:** Publish to crates.io
+**For everyone else:** GitHub Releases with pre-compiled binaries
 **Best of both:** Do both! 🚀
 
 ## Current Status
 
-✅ `Cargo.toml` is ready for crates.io  
-✅ README.md has installation instructions  
-✅ LICENSE is MIT  
-⏳ Waiting for first GitHub push  
-⏳ Waiting for crates.io publish  
+✅ `Cargo.toml` is ready for crates.io
+✅ README.md has installation instructions
+✅ LICENSE is MIT
+⏳ Waiting for first GitHub push
+⏳ Waiting for crates.io publish
 
 ## Quick Start Publishing
 

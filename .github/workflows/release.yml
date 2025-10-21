@@ -79,33 +79,33 @@ jobs:
             ${{ matrix.platform.name }}.sha256
           body: |
             ## Installation
-            
+
             ### From Binary
             Download the appropriate binary for your platform, extract it, and move to your PATH.
-            
+
             **macOS/Linux:**
             ```bash
             tar xzf proxmon-*.tar.gz
             chmod +x proxmon
             sudo mv proxmon /usr/local/bin/
             ```
-            
+
             **Windows:**
             Extract the zip and add `proxmon.exe` to your PATH.
-            
+
             ### From Source (with Cargo)
             ```bash
             cargo install proxmon
             ```
-            
+
             ### From Git
             ```bash
             cargo install --git https://github.com/0xgoz/proxmon --tag ${{ github.ref_name }}
             ```
-            
+
             ## What's New
             See the full changelog in [CHANGELOG.md](CHANGELOG.md)
-            
+
             ---
             🎮 **Gotta manage 'em all!**
 
