@@ -1,0 +1,25 @@
+[package]
+name = "proxmon"
+version = "0.1.0"
+edition = "2021"
+description = "A blazingly fast terminal UI for managing Proxmox VMs and containers - Gotta manage 'em all!"
+authors = ["0xgoz"]
+license = "MIT"
+repository = "https://github.com/0xgoz/proxmon"
+homepage = "https://github.com/0xgoz/proxmon"
+keywords = ["proxmox", "tui", "terminal", "vm", "lxc"]
+categories = ["command-line-utilities"]
+readme = "README.md"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+tokio = { version = "1.41", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+anyhow = "1.0"
+arboard = "3.4"
+tui-input = "0.10"
+dirs = "5.0"

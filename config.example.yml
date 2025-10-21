@@ -1,0 +1,42 @@
+# Proxmox Host Configuration
+proxmox_hosts:
+  - name: vs01
+    host: 10.1.2.1
+    port: 8006
+    api_token_id: "root@pam!rust-tui"
+    api_token_secret: "your-secret-here"
+    verify_ssl: false
+
+  - name: vs02
+    host: 10.1.2.2
+    port: 8006
+    api_token_id: "root@pam!rust-tui"
+    api_token_secret: "your-secret-here"
+    verify_ssl: false
+
+# Manual hosts (non-Proxmox hosts like Raspberry Pis)
+manual_hosts:
+  - name: "pi1"
+    ip: "10.1.2.50"
+    type: "physical"
+    ansible_user: "gozy"
+
+  - name: "pi2"
+    ip: "10.1.2.51"
+    type: "physical"
+    ansible_user: "gozy"
+
+# IP overrides for VMs/LXCs that don't report their IP or have incorrect IPs
+# Use the exact name as it appears in Proxmox
+ip_overrides:
+  - name: "dc01"
+    ip: "10.1.2.100"
+  - name: "truenas"
+    ip: "10.1.2.15"
+
+# Ansible default settings
+ansible_defaults:
+  python_interpreter: "/usr/bin/python3"
+  become: true
+  become_method: "sudo"
+
