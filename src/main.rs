@@ -83,16 +83,10 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Create app
+    // Create app (starts in loading state)
     let mut app = App::new(config, actual_config_path);
 
-    // Fetch initial data (don't fail if this errors - we'll show it in the UI)
-    if let Err(e) = app.fetch_all_hosts().await {
-        eprintln!("Warning: Failed to fetch initial data: {}", e);
-        app.last_error = Some(format!("Failed to fetch data: {}", e));
-    }
-
-    // Run the app
+    // Run the app (initial data fetch happens inside the loop)
     let res = run_app(&mut terminal, &mut app).await;
 
     // Restore terminal
@@ -112,6 +106,100 @@ async fn main() -> Result<()> {
 }
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<()> {
+    // Perform initial fetch with animated loading screen
+    if !app.initial_fetch_done {
+        // Spawn the fetch task
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+        let config = app.config.clone();
+
+        tokio::spawn(async move {
+            let mut all_hosts = Vec::new();
+
+            // Fetch from each Proxmox host
+            for pve_host in &config.proxmox_hosts {
+                match crate::proxmox::ProxmoxClient::new(pve_host) {
+                    Ok(client) => {
+                        match client.fetch_all_hosts().await {
+                            Ok(hosts) => {
+                                all_hosts.extend(hosts);
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Err(format!("Error fetching from {}: {}", pve_host.name, e))).await;
+                                return;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let _ = tx.send(Err(format!("Error creating client for {}: {}", pve_host.name, e))).await;
+                        return;
+                    }
+                }
+            }
+
+            let _ = tx.send(Ok(all_hosts)).await;
+        });
+
+        // Keep drawing loading screen until fetch completes
+        loop {
+            app.tick_loading_animation();
+            terminal.draw(|f| ui::render(f, app))?;
+
+            // Check if fetch completed
+            if let Ok(result) = rx.try_recv() {
+                match result {
+                    Ok(mut hosts) => {
+                        // Apply IP overrides
+                        for host in &mut hosts {
+                            if let Some(override_entry) = app.config.ip_overrides.iter().find(|o| o.name == host.name) {
+                                host.ip = Some(override_entry.ip.clone());
+                            }
+                        }
+
+                        // Add manual hosts
+                        for manual_host in &app.config.manual_hosts {
+                            hosts.push(crate::proxmox::Host {
+                                name: manual_host.name.clone(),
+                                host_type: crate::proxmox::HostType::Physical,
+                                status: "unknown".to_string(),
+                                ip: Some(manual_host.ip.clone()),
+                                node: None,
+                                vmid: None,
+                                ansible_user: Some(manual_host.ansible_user.clone()),
+                            });
+                        }
+
+                        app.hosts = hosts;
+                        app.apply_sort();
+
+                        if app.selected_index >= app.hosts.len() && !app.hosts.is_empty() {
+                            app.selected_index = app.hosts.len() - 1;
+                        }
+                    }
+                    Err(e) => {
+                        app.last_error = Some(e);
+                    }
+                }
+
+                app.is_loading = false;
+                app.initial_fetch_done = true;
+                break;
+            }
+
+            // Handle quit during loading
+            if event::poll(Duration::from_millis(100))? {
+                if let Event::Key(key) = event::read()? {
+                    if key.code == crossterm::event::KeyCode::Char('q')
+                        || key.code == crossterm::event::KeyCode::Char('Q')
+                        || (key.code == crossterm::event::KeyCode::Char('c')
+                            && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)) {
+                        app.should_quit = true;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+
     loop {
         terminal.draw(|f| ui::render(f, app))?;
 

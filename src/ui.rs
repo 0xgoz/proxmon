@@ -9,6 +9,12 @@ use ratatui::{
 use crate::app::{App, ViewMode, SortColumn, SortDirection, SetupField};
 
 pub fn render(f: &mut Frame, app: &mut App) {
+    // Show fullscreen loader during initial load (when loading and no hosts yet)
+    if app.is_loading && app.hosts.is_empty() && !app.initial_fetch_done {
+        render_loading_screen(f, app);
+        return;
+    }
+
     match app.view_mode {
         ViewMode::Main => render_main_view(f, app),
         ViewMode::Export => render_export_view(f, app),
@@ -380,5 +386,93 @@ fn centered_rect_fixed(percent_x: u16, height: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+fn render_loading_screen(f: &mut Frame, app: &App) {
+    // Fullscreen loading screen with centered content
+    let area = f.area();
+
+    // Create centered box for loading content
+    let loading_area = centered_rect_fixed(60, 20, area);
+
+    // Main block with border
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Cyan))
+        .style(Style::default().bg(Color::Black));
+
+    let inner_area = block.inner(loading_area);
+    f.render_widget(block, loading_area);
+
+    // Split inner area for content
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),  // Top spacer
+            Constraint::Length(5),  // ASCII art logo
+            Constraint::Length(1),  // Spacer
+            Constraint::Length(1),  // Tagline
+            Constraint::Length(2),  // Spacer
+            Constraint::Length(3),  // Spinner and message
+            Constraint::Min(0),     // Rest
+        ])
+        .split(inner_area);
+
+    // ASCII Art Logo
+    let logo_lines = vec![
+        Line::from(Span::styled(
+            " ____                                       ",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::styled(
+            "|  _ \\ _ __ _____  ___ __ ___   ___  _ __  ",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::styled(
+            "| |_) | '__/ _ \\ \\/ / '_ ` _ \\ / _ \\| '_ \\ ",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::styled(
+            "|  __/| | | (_) >  <| | | | | | (_) | | | |",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::styled(
+            "|_|   |_|  \\___/_/\\_\\_| |_| |_|\\___/|_| |_|",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+    ];
+    let logo = Paragraph::new(logo_lines)
+        .alignment(ratatui::layout::Alignment::Center);
+    f.render_widget(logo, chunks[1]);
+
+    // Tagline
+    let tagline = Paragraph::new(Line::from(Span::styled(
+        "Gotta manage 'em all!",
+        Style::default().fg(Color::Green).add_modifier(Modifier::ITALIC),
+    )))
+    .alignment(ratatui::layout::Alignment::Center);
+    f.render_widget(tagline, chunks[3]);
+
+    // Animated spinner and loading message
+    let spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+    let spinner = spinner_frames[app.loading_frame % spinner_frames.len()];
+
+    let loading_text = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                format!("{} ", spinner),
+                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "Fetching data from Proxmox API...",
+                Style::default().fg(Color::White),
+            ),
+        ]),
+    ];
+
+    let loading_msg = Paragraph::new(loading_text)
+        .alignment(ratatui::layout::Alignment::Center);
+    f.render_widget(loading_msg, chunks[5]);
 }
 

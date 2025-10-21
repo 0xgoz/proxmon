@@ -54,6 +54,8 @@ pub struct App {
     pub editing_host_name: String,
     pub sort_column: SortColumn,
     pub sort_direction: SortDirection,
+    pub initial_fetch_done: bool,
+    pub loading_frame: usize,
     // Setup form fields
     pub setup_field: SetupField,
     pub setup_name: Input,
@@ -70,7 +72,7 @@ impl App {
             hosts: Vec::new(),
             selected_index: 0,
             view_mode: ViewMode::Main,
-            is_loading: false,
+            is_loading: true, // Start with loading state
             last_error: None,
             config,
             config_path,
@@ -80,6 +82,8 @@ impl App {
             editing_host_name: String::new(),
             sort_column: SortColumn::Name,
             sort_direction: SortDirection::Ascending,
+            initial_fetch_done: false,
+            loading_frame: 0,
             setup_field: SetupField::Name,
             setup_name: Input::default(),
             setup_host: Input::default(),
@@ -88,6 +92,10 @@ impl App {
             setup_token_secret: Input::default(),
             setup_verify_ssl: false,
         }
+    }
+
+    pub fn tick_loading_animation(&mut self) {
+        self.loading_frame = self.loading_frame.wrapping_add(1);
     }
 
     pub async fn fetch_all_hosts(&mut self) -> Result<()> {
