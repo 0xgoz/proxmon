@@ -9,73 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - name: Get version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Proxmon v${{ steps.get_version.outputs.version }}
-          body: |
-            ## Proxmon v${{ steps.get_version.outputs.version }}
-
-            🎮 **Gotta manage 'em all!** - A blazingly fast terminal UI for Proxmox
-
-            ### Installation
-
-            Download the appropriate binary for your platform below, extract it, and move it to your PATH.
-
-            **macOS:**
-            ```bash
-            # Apple Silicon (M1/M2/M3)
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-aarch64.tar.gz | tar xz
-
-            # Intel
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-x86_64.tar.gz | tar xz
-
-            # Install
-            chmod +x proxmon
-            sudo mv proxmon /usr/local/bin/
-            ```
-
-            **Linux:**
-            ```bash
-            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-linux-x86_64.tar.gz | tar xz
-            chmod +x proxmon
-            sudo mv proxmon /usr/local/bin/
-            ```
-
-            **Windows:**
-            Download `proxmon-windows-x86_64.zip`, extract, and add to your PATH.
-
-            ### Alternative Installation
-
-            If you have Rust/Cargo installed:
-            ```bash
-            cargo install proxmon
-            ```
-
-            ### Checksums
-
-            SHA-256 checksums are provided for all binaries below.
-          draft: false
-          prerelease: false
-
   build-release:
     name: Build Release
-    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -91,11 +26,11 @@ jobs:
 
           # Linux
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-20.04  # Use older Ubuntu for better glibc compatibility
+            os: ubuntu-22.04  # Use older Ubuntu for better glibc compatibility
             name: proxmon-linux-x86_64.tar.gz
 
           - target: x86_64-unknown-linux-musl
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             name: proxmon-linux-x86_64-musl.tar.gz
 
           # Windows
@@ -151,22 +86,75 @@ jobs:
             sha256sum ${{ matrix.name }} > ${{ matrix.name }}.sha256
           fi
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.name }}
-          asset_name: ${{ matrix.name }}
-          asset_content_type: application/octet-stream
+          files: |
+            ${{ matrix.name }}
+            ${{ matrix.name }}.sha256
+          body: |
+            ## Proxmon ${{ github.ref_name }}
 
-      - name: Upload Checksum
-        uses: actions/upload-release-asset@v1
+            🎮 **Gotta manage 'em all!** - A blazingly fast terminal UI for Proxmox
+
+            ### ✨ What's New in This Release
+
+            - Auto-creates config file on first run - no manual setup needed!
+            - Press 'a' to add your first Proxmox host interactively
+            - Universal Linux MUSL build works on any distro
+
+            ### 📦 Installation
+
+            Download the appropriate binary for your platform below, extract it, and move it to your PATH.
+
+            **macOS:**
+            ```bash
+            # Apple Silicon (M1/M2/M3)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-aarch64.tar.gz | tar xz
+
+            # Intel
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-darwin-x86_64.tar.gz | tar xz
+
+            # Install
+            chmod +x proxmon
+            sudo mv proxmon /usr/local/bin/
+            ```
+
+            **Linux (Recommended - works on ANY distro!):**
+            ```bash
+            # MUSL build - statically linked, zero dependencies
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-linux-x86_64-musl.tar.gz | tar xz
+            chmod +x proxmon
+            sudo mv proxmon /usr/local/bin/
+
+            # Or standard glibc build (Ubuntu 20.04+, Debian 11+)
+            curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/proxmon-linux-x86_64.tar.gz | tar xz
+            chmod +x proxmon
+            sudo mv proxmon /usr/local/bin/
+            ```
+
+            **Windows:**
+            Download `proxmon-windows-x86_64.zip`, extract, and add to your PATH.
+
+            ### 🦀 Alternative Installation
+
+            If you have Rust/Cargo installed:
+            ```bash
+            cargo install proxmon
+            ```
+
+            ### ✅ Checksums
+
+            SHA-256 checksums are provided for all binaries for verification.
+
+            ### 🚀 First Run
+
+            Just run `proxmon` - it will auto-create the config file!
+            ```bash
+            proxmon
+            # Press 'a' to add your first Proxmox host
+            ```
+
+            Config is saved to `~/.config/proxmon/config.yml`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.name }}.sha256
-          asset_name: ${{ matrix.name }}.sha256
-          asset_content_type: text/plain
